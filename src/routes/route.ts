@@ -17,7 +17,7 @@ export const route = (router:Router) => {
   const mediaCon = new MediaController;
   const attCon = new AttendanceController;
   
-  router.get("/health", (req:Request, res:Response) => { res.send("OK") });
+  router.get("/api/health", (req:Request, res:Response) => { res.send("OK") });
 
   // Auth
   router.post("/api/auth/login", authCon.login);

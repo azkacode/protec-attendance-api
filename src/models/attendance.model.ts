@@ -35,7 +35,7 @@ export default class AttendanceModel extends Model{
       `;
       const params = [filter.employee_id, filter.start_date, filter.end_date];
       console.log('SQL Query:', connection.format(q, params));
-      const [[rows]] = await connection.query(q, params);
+      const [rows] = await connection.query(q, params);
       connection.release();
       return rows;
     } catch (error) {
