@@ -28,6 +28,7 @@ export const route = (router:Router) => {
   // Employee
   router.get("/api/employee/me", authMiddleware, empCon.getDetail);
   router.post("/api/employee/change-photo", authMiddleware, empCon.changeProfile);
+  router.post("/api/employee/update-password", authMiddleware, empCon.updatePassword);
 
   // Attendance
   router.get("/api/attendance/get", authMiddleware, attCon.get);

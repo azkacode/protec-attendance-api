@@ -67,4 +67,20 @@ export default class AuthModel extends Model{
       throw error;
     }
   }
+  async updatePass(hashed_pass:string, employee_id:number) {
+    try {
+      const connection = await this.pool.getConnection();
+      const q = `
+        UPDATE employees set password = ?
+        WHERE id = ?
+      `;
+      console.log('SQL Query:', connection.format(q, [hashed_pass, employee_id])); 
+      const [rows] = await connection.query(q, [hashed_pass, employee_id]);
+      connection.release();
+      return rows;
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
 }
