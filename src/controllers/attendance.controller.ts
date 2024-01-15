@@ -59,7 +59,7 @@ export default class AttendanceController  {
     try {
       const attendanceModel = new AttendanceModel;
       const currentAttendance = await attendanceModel.getDetail(req.data.id);
-      if(currentAttendance){
+      if(currentAttendance.length > 0){
         throw new Error("Anda sudah check in");
       }
 
@@ -90,10 +90,10 @@ export default class AttendanceController  {
     try {
       const attendanceModel = new AttendanceModel;
       const currentAttendance = await attendanceModel.getDetail(req.data.id);
-      if(!currentAttendance){
+      if(currentAttendance.length == 0){
         throw new Error("Anda harus check in terlebih dahulu");
       }
-      if(currentAttendance.length >= 2){
+      if(currentAttendance.filter((i:any) => i.type == "out").length >= 1){
         throw new Error("Anda sudah check out");
       }
 

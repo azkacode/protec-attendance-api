@@ -21,6 +21,7 @@ export default class Loaders {
       database: config.mysql.database,
       password: config.mysql.password,
       port: config.mysql.port,
+      timezone: "+07.00"
     });
     const connection = pool.promise();
     connection.query('SELECT 1')

@@ -1,11 +1,13 @@
+import moment from "moment-timezone";
+
 interface GroupedData {
-  date: Date;
+  date: any;
   employee_id: number;
-  data: itemAttendance[];
+  data: ItemAttendance[];
 }
 
 
-interface itemAttendance {
+interface ItemAttendance {
   id: number;
   date: string | any;
   type: 'in' | 'out';
@@ -24,16 +26,16 @@ export class AttendanceLib {
   getMockList(list: any) {
     const groupedData: GroupedData[] = [];
     list.forEach((item: any) => {
+      item.date = moment(item.date).format("Y-MM-D")
       if (item.date !== null) {
         const existingGroup = groupedData.find(
-          (group) => group.date.getTime() === new Date(item.date).getTime() && group.employee_id === item.employee_id
+          (group) => moment(group.date).format("Y-MM-D") === moment(item.date).format("Y-MM-D") && group.employee_id === item.employee_id
         );
-
         if (existingGroup) {
           existingGroup.data.push(item);
         } else {
           groupedData.push({
-            date: new Date(item.date),
+            date: moment(item.date).format("Y-MM-D"),
             employee_id: item.employee_id,
             data: [item],
           });
