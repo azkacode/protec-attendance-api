@@ -1,4 +1,3 @@
-import { isThisTypeNode } from 'typescript';
 import EmployeeModel from '../models/employee.model';
 import bcrypt from 'bcryptjs';
 

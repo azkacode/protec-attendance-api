@@ -5,6 +5,7 @@ import AttendanceController from '../controllers/attendance.controller';
 import MediaController from '../controllers/media.controller';
 import authMiddleware from '../middlewares/auth.middleware';
 import multer from 'multer';
+import LeaveController from '../controllers/leave.controller';
 
 
 const storage = multer.memoryStorage();
@@ -14,6 +15,7 @@ const upload = multer({ storage: storage });
 export const route = (router:Router) => {
   const authCon = new AuthController;
   const empCon = new EmployeeController;
+  const leaveCon = new LeaveController;
   const mediaCon = new MediaController;
   const attCon = new AttendanceController;
   
@@ -38,9 +40,9 @@ export const route = (router:Router) => {
   router.post("/api/attendance/checkout", authMiddleware, attCon.checkOut);
 
   // Leave
-  router.get("/api/leave/get", authMiddleware, empCon.getDetail);
-  router.get("/api/leave/report", authMiddleware, empCon.getDetail);
-  router.post("/api/leave/request", authMiddleware, empCon.getDetail);
+  router.get("/api/leave/get", authMiddleware, leaveCon.getDetail);
+  router.get("/api/leave/report", authMiddleware, leaveCon.getDetail);
+  router.post("/api/leave/request", authMiddleware, leaveCon.leaveRequest);
 
 
 
