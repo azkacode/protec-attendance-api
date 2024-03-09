@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+      "baseUrl" : "./",
+      "moduleResolution": "node",
+      "outDir": "dist",
+      "sourceMap": true,
+      "target": "es2015",
+      "esModuleInterop": true,
+      "paths": {
+        "undici-types": ["node_modules/undici-types/index.d.ts"]
+      },
+    },
+    "include": [
+      "src/**/*.ts"
+    ]
+  }
+  

@@ -1,12 +1,23 @@
 export interface AttendanceFilterInterface {
     start_date: Date | null;
     end_date: Date | null;
-    employee_id : Number;
+    employee_id : number;
 }
 
 export enum CheckInType {
     In = 'in',
     Out = 'out',
+}
+
+export enum AttendanceType {
+    Start = "start",
+    End = "end",
+}
+
+export enum AttendanceStatus {
+    OK = 'ok',
+    DT = 'dt',
+    PC = 'pc'
 }
 
 export interface CheckInInterface {
@@ -16,6 +27,7 @@ export interface CheckInInterface {
     time : string;
     map : string;
     reason : string | null;
+    attendance_status : AttendanceStatus | null,
 }
 
 export interface CheckOutInterface {
@@ -25,6 +37,7 @@ export interface CheckOutInterface {
     time : string;
     map : string;
     reason : string | null;
+    attendance_status : AttendanceStatus | null,
 }
 
 export interface MockDataAttendance {
@@ -49,4 +62,45 @@ export interface MockDataAttendance {
     rejected_at_out : Date | null;
     created_at : Date;
     updated_at : Date;
+}
+
+export interface GroupedData {
+    date: any;
+    employee_id: number;
+    data: ItemAttendance[];
+}
+interface ItemAttendance {
+    id: number;
+    date: any;
+    type: 'in' | 'out';
+    employee_id: number;
+    evidence: string;
+    time: string;
+    map: string;
+    reason: string | null;
+    approved_by: number | null;
+    rejected_by: number | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface AttendanceLogInterface {
+    attendance_id : number,
+    employee_id : number,
+    type : CheckInType,
+    evidence : string,
+    time : string,
+    map : string,
+    reason : string | null,
+    attendance_status : AttendanceStatus,
+    approved_by : number | null,
+    rejected_by : number | null,
+    actioned_by : number,
+    working_hour_id : number,
+    name : string,
+    working_hour_item_id : number,
+    day : string,
+    start : string,
+    end : string,
+    status : number
 }

@@ -1,11 +1,12 @@
 import AttendanceModel from '../models/attendance.model';
 import {
   AttendanceFilterInterface,
-  CheckInInterface,
   CheckOutInterface,
-  CheckInType
+  CheckInType,
 } from '../interfaces/attendance.interface';
 import { AttendanceLib } from '../lib/attendance';
+import moment from "moment-timezone";
+const timezone = 'Asia/Jakarta';
 
 export default class AttendanceController  {
   async get(req:any, res:any){
@@ -44,10 +45,14 @@ export default class AttendanceController  {
   }
   async report(req:any, res:any){
     try {
+      const attendanceModel = new AttendanceModel;
+      const data = await attendanceModel.getReport(req.data.id);
+      const attendance = await attendanceModel.getTotalAttendance(req.data.id);
       res.json({
         data : {
-          attendance : 2,
-          late : 1,
+          attendance : attendance.length > 0 ? attendance[0]['attendance'] : 0,
+          late : data.find(i => i.attendance_status == "dt")?.total || 0,
+          early : data.find(i => i.attendance_status == "pc")?.total || 0,
         }
       })
     } catch (error:any) {
@@ -58,25 +63,18 @@ export default class AttendanceController  {
   async checkIn(req:any, res:any){
     try {
       const attendanceModel = new AttendanceModel;
+      const attendanceLib = new AttendanceLib();
       const currentAttendance = await attendanceModel.getDetail(req.data.id);
+
       if(currentAttendance.length > 0){
         throw new Error("Anda sudah check in");
       }
-
-      let props : CheckInInterface = {
-        type : CheckInType.In,
-        employee_id : req.data.id,
-        evidence : req.body.check_in,
-        map : req.body.map_in,
-        time : req.body.time_in,
-        reason : req.body.reason,
-      };
-
-      if(!props.evidence || !props.map || !props.time) {
-        throw new Error("Item Required");
+      
+      const wH = await attendanceLib.getCurrentWorkingHour(req.data.id);
+      if(!wH){
+        throw new Error("Anda sedang libur");
       }
-      await attendanceModel.submitCheck(props);
-
+      await attendanceLib.submitAttendance(req, wH, CheckInType.In);
       const data = await attendanceModel.getDetail(req.data.id);
       res.json({
         data
@@ -89,6 +87,7 @@ export default class AttendanceController  {
   async checkOut(req:any, res:any){
     try {
       const attendanceModel = new AttendanceModel;
+      const attendanceLib = new AttendanceLib();
       const currentAttendance = await attendanceModel.getDetail(req.data.id);
       if(currentAttendance.length == 0){
         throw new Error("Anda harus check in terlebih dahulu");
@@ -97,16 +96,11 @@ export default class AttendanceController  {
         throw new Error("Anda sudah check out");
       }
 
-      let props : CheckOutInterface = {
-        type : CheckInType.Out,
-        employee_id : req.data.id,
-        evidence : req.body.check_out,
-        map : req.body.map_out,
-        time : req.body.time_out,
-        reason : req.body.reason,
-      };
-
-      await attendanceModel.submitCheck(props);
+      const wH = await attendanceLib.getCurrentWorkingHour(req.data.id);
+      if(!wH){
+        throw new Error("Anda sedang libur");
+      }
+      await attendanceLib.submitAttendance(req, wH, CheckInType.Out);
       const data = await attendanceModel.getDetail(req.data.id);
       res.json({
         data

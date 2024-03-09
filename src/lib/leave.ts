@@ -4,9 +4,12 @@ export class LeaveLib {
   async getRemainingLeave(employeeId: number, leaveId: any): Promise<any> {
     const leaveModel = new LeaveModel;
     const leaves: any = await leaveModel.getLeaves(employeeId, leaveId);
-    for (const l of leaves) {
-      l.logs = await leaveModel.getLeaveLogs(employeeId, l.id);
-      l.remaining_leaves = l.logs.length > 0 ? l.total - l.logs.length : l.total
+    
+    if(leaves.length > 0){
+      for (const l of leaves) {
+        l.logs = await leaveModel.getLeaveLogs(employeeId, l.id);
+        l.remaining_leaves = l.logs.length > 0 ? l.total - l.logs.length : l.total || 0
+      }
     }
     return leaves;
   }

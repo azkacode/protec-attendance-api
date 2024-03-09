@@ -1,41 +1,31 @@
 import moment from "moment-timezone";
-
-interface GroupedData {
-  date: any;
-  employee_id: number;
-  data: ItemAttendance[];
-}
-
-
-interface ItemAttendance {
-  id: number;
-  date: string | any;
-  type: 'in' | 'out';
-  employee_id: number;
-  evidence: string;
-  time: string;
-  map: string;
-  reason: string | null;
-  approved_by: number | null;
-  rejected_by: number | null;
-  created_at: string;
-  updated_at: string;
-}
+import {
+  CheckInInterface,
+  AttendanceStatus,
+  AttendanceType,
+  GroupedData,
+  AttendanceLogInterface,
+  CheckInType,
+} from '../interfaces/attendance.interface';
+import AttendanceModel from '../models/attendance.model';
+const timezone = 'Asia/Jakarta';
 
 export class AttendanceLib {
-  getMockList(list: any) {
+  getMockList(list: any) : GroupedData[] {
     const groupedData: GroupedData[] = [];
     list.forEach((item: any) => {
-      item.date = moment(item.date).format("Y-MM-D")
+      item.date = moment(item.date).format("Y-MM-DD")
+      item.time = moment(item.time).format("HH:mm:ss")
+      item.attendance_status = this.getIdnStatus(item.attendance_status);
       if (item.date !== null) {
         const existingGroup = groupedData.find(
-          (group) => moment(group.date).format("Y-MM-D") === moment(item.date).format("Y-MM-D") && group.employee_id === item.employee_id
+          (group) => moment(group.date).format("Y-MM-DD") === moment(item.date).format("Y-MM-DD") && group.employee_id === item.employee_id
         );
         if (existingGroup) {
           existingGroup.data.push(item);
         } else {
           groupedData.push({
-            date: moment(item.date).format("Y-MM-D"),
+            date: moment(item.date).format("Y-MM-DD"),
             employee_id: item.employee_id,
             data: [item],
           });
@@ -43,5 +33,93 @@ export class AttendanceLib {
       }
     });
     return groupedData
+  }
+
+  getIdnStatus(status: string) : string {
+    let newStatus = null;
+    switch (status) {
+      case 'ok':
+        newStatus = "On Time";
+        break;
+      case 'dt':
+        newStatus = "Datang Terlambat";
+        break;
+      case 'pc':
+        newStatus = "Pulang Cepat";
+        break;
+      default:
+        newStatus = null;
+        break;
+    }
+    return newStatus;
+  }
+
+  getFullStringDay(date : Date | null): string {
+    const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const d = date == null ? new Date : new Date(date);
+    const currentDay = days[d.getDay()];
+    return currentDay;
+  }
+
+  async getCurrentWorkingHour(userId: number){
+    const attModel = new AttendanceModel();
+    const employeeWh = await attModel.getWorkingHour(userId);
+    const wH = employeeWh.find(i => i.day == this.getFullStringDay(null));
+    return wH;
+  }
+
+  async getAttendanceStatus(userId : number, type : AttendanceType): Promise<AttendanceStatus> {
+    const wH = await this.getCurrentWorkingHour(userId)
+    const targetTime = type == AttendanceType.Start ? wH.start : wH.end;
+    const currentTime = moment().tz(timezone).format('HH:mm');
+    console.log("target Time", targetTime, currentTime);
+    return (type == AttendanceType.Start)
+      ?   (currentTime > targetTime) ? AttendanceStatus.DT : AttendanceStatus.OK
+      :   (currentTime < targetTime) ? AttendanceStatus.PC : AttendanceStatus.OK
+  }
+
+  async submitAttendance(req, wH, type : CheckInType){
+    console.log("type", type);
+    
+    const attendanceModel = new AttendanceModel;
+    const props : CheckInInterface = {
+      type : type,
+      employee_id : req.data.id,
+      evidence : type == CheckInType.In ? req.body.check_in : req.body.check_out,
+      map : type == CheckInType.In ? req.body.map_in : req.body.map_out,
+      time : moment().tz(timezone).format("Y-MM-DD HH:mm:ss"),
+      reason : req.body.reason,
+      attendance_status : null,
+    };
+
+    if(!props.evidence || !props.map || !props.time) {
+      throw new Error("Item Required");
+    }
+    const columnType = type == CheckInType.In ? AttendanceType.Start : AttendanceType.End
+    props.attendance_status = await this.getAttendanceStatus(req.data.id, columnType);
+    const attd = await attendanceModel.submitCheck(props);
+    
+    const logData : AttendanceLogInterface = {
+      attendance_id : attd.insertId,
+      employee_id : props.employee_id,
+      type : props.type,
+      evidence : props.evidence,
+      time : props.time,
+      map : props.map,
+      reason : props.reason,
+      attendance_status : props.attendance_status,
+      approved_by : null,
+      rejected_by : null,
+      actioned_by : props.employee_id,
+      working_hour_id : wH.working_hour_id,
+      name : wH.name,
+      working_hour_item_id : wH.id,
+      day : wH.day,
+      start : wH.start,
+      end : wH.end,
+      status : wH.status,
+    }
+    await attendanceModel.submitAttendanceLog(logData);
+    return
   }
 }
