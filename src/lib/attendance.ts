@@ -15,7 +15,7 @@ export class AttendanceLib {
     const groupedData: GroupedData[] = [];
     list.forEach((item: any) => {
       item.date = moment(item.date).format("Y-MM-DD")
-      item.time = moment(item.time).format("HH:mm:ss")
+      item.time = moment.utc(item.time).format("HH:mm:ss")
       item.attendance_status = this.getIdnStatus(item.attendance_status);
       if (item.date !== null) {
         const existingGroup = groupedData.find(
