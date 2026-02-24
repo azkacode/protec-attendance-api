@@ -109,7 +109,7 @@ export class AttendanceLib {
       reason : props.reason,
       attendance_status : props.attendance_status,
       approved_by : null,
-      rejected_by : null,
+      rejected_by : props.attendance_status == AttendanceStatus.OK ? null : 0,
       actioned_by : props.employee_id,
       working_hour_id : wH.working_hour_id,
       name : wH.name,
