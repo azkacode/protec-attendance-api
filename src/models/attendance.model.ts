@@ -65,8 +65,8 @@ export default class AttendanceModel extends Model{
       } else {
         q = `
           insert into attendances
-          (date, type, employee_id, evidence, time, map, reason, created_at, updated_at, rejected_by, rejected_at) values
-          (now(), ?, ?, ?, ?, ?, ?, now(), now(), 0, now())
+          (date, type, employee_id, evidence, time, map, reason, attendance_status, created_at, updated_at, rejected_by, rejected_at) values
+          (now(), ?, ?, ?, ?, ?, ?, ?, now(), now(), 0, now())
         `;
       }
       const params = [
