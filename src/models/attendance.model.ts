@@ -2,7 +2,8 @@ import Model from './model';
 import {
     AttendanceFilterInterface,
     CheckInInterface,
-    AttendanceLogInterface
+    AttendanceLogInterface,
+    AttendanceStatus
 } from '../interfaces/attendance.interface';
 import moment from "moment-timezone";
 
@@ -54,11 +55,20 @@ export default class AttendanceModel extends Model{
   async submitCheck(data : CheckInInterface) {
     try {
       const connection = await this.pool.getConnection();
-      const q = `
-        insert into attendances
-        (date, type, employee_id, evidence, time, map, reason, attendance_status, created_at, updated_at) values
-        (now(), ?, ?, ?, ?, ?, ?, ?, now(), now())
-      `;
+      let q = "";
+      if(data.attendance_status == AttendanceStatus.OK) {
+        q = `
+          insert into attendances
+          (date, type, employee_id, evidence, time, map, reason, attendance_status, created_at, updated_at) values
+          (now(), ?, ?, ?, ?, ?, ?, ?, now(), now())
+        `;  
+      } else {
+        q = `
+          insert into attendances
+          (date, type, employee_id, evidence, time, map, reason, created_at, updated_at, rejected_by, rejected_at) values
+          (now(), ?, ?, ?, ?, ?, ?, now(), now(), 0, now())
+        `;
+      }
       const params = [
           data.type,
           data.employee_id,
