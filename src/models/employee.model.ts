@@ -36,11 +36,7 @@ export default class AuthModel extends Model{
   async warehouseDetail(warehouse_id:number) {
     try {
       const connection = await this.pool.getConnection();
-      const q = `
-        SELECT id, name, lat, long
-        FROM warehouses
-        WHERE id = ? and deleted_at is null
-      `;
+      const q = "SELECT id, name, `lat`, `long` FROM warehouses WHERE id = ? and deleted_at is null";
       console.log('SQL Query:', connection.format(q, [warehouse_id])); 
       const [[rows]] = await connection.query(q, [warehouse_id]);
       connection.release();

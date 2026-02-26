@@ -104,9 +104,16 @@ export class AttendanceLib {
     const columnType = type == CheckInType.In ? AttendanceType.Start : AttendanceType.End
     props.attendance_status = await this.getAttendanceStatus(req.data.id, columnType);
 
-    // get employee warehouse location
-    const employeeWarehouse = await employeeModel.warehouseDetail(req.data.warehouse_id);
-    console.log("employeeWarehouse", employeeWarehouse);
+    // get employee data
+    const employee = await employeeModel.employeeDetail(req.data.email);
+    if (!employee) {
+      throw new Error("Employee not found");
+    }
+    
+    const employeeWarehouse = await employeeModel.warehouseDetail(employee.warehouse_id);
+    if (!employeeWarehouse) {
+      throw new Error("Employee Warehouse not found");
+    }
 
     // calculate the distance between employee warehouse location and check in location
     const latlong: any = props.map.split(",");
@@ -119,7 +126,6 @@ export class AttendanceLib {
         latitude: parseFloat(latlong[0]),
         longitude: parseFloat(latlong[1])
       }));
-      console.log("radius", radius);
     }
     props.radius = radius;
 
