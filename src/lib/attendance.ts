@@ -110,14 +110,17 @@ export class AttendanceLib {
 
     // calculate the distance between employee warehouse location and check in location
     const latlong: any = props.map.split(",");
-    const radius = Math.round(haversine({
-      latitude: employeeWarehouse.lat,
-      longitude: employeeWarehouse.long
-    }, {
-      latitude: parseFloat(latlong[0]),
-      longitude: parseFloat(latlong[1])
-    }));
-    console.log("radius", radius);
+    let radius: any = null;
+    if (employeeWarehouse.lat && employeeWarehouse.long) {
+      radius = Math.round(haversine({
+        latitude: employeeWarehouse.lat,
+        longitude: employeeWarehouse.long
+      }, {
+        latitude: parseFloat(latlong[0]),
+        longitude: parseFloat(latlong[1])
+      }));
+      console.log("radius", radius);
+    }
     props.radius = radius;
 
     // submit attendance
