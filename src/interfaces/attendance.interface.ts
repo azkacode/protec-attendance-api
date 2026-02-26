@@ -28,6 +28,7 @@ export interface CheckInInterface {
     map : string;
     reason : string | null;
     attendance_status : AttendanceStatus | null,
+    radius : number | null,
 }
 
 export interface CheckOutInterface {

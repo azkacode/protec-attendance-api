@@ -37,7 +37,7 @@ export default class AuthModel extends Model{
     try {
       const connection = await this.pool.getConnection();
       const q = `
-        SELECT id, name
+        SELECT id, name, lat, long
         FROM warehouses
         WHERE id = ? and deleted_at is null
       `;

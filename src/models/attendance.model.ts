@@ -56,17 +56,17 @@ export default class AttendanceModel extends Model{
     try {
       const connection = await this.pool.getConnection();
       let q = "";
-      if(data.attendance_status == AttendanceStatus.OK) {
+      if(data.attendance_status == AttendanceStatus.OK && data.radius <= 500) {
         q = `
           insert into attendances
-          (date, type, employee_id, evidence, time, map, reason, attendance_status, created_at, updated_at) values
-          (now(), ?, ?, ?, ?, ?, ?, ?, now(), now())
+          (date, type, employee_id, evidence, time, map, reason, attendance_status, radius, created_at, updated_at) values
+          (now(), ?, ?, ?, ?, ?, ?, ?, ?, now(), now())
         `;  
       } else {
         q = `
           insert into attendances
-          (date, type, employee_id, evidence, time, map, reason, attendance_status, created_at, updated_at, rejected_by, rejected_at) values
-          (now(), ?, ?, ?, ?, ?, ?, ?, now(), now(), 0, now())
+          (date, type, employee_id, evidence, time, map, reason, attendance_status, radius, created_at, updated_at, rejected_by, rejected_at) values
+          (now(), ?, ?, ?, ?, ?, ?, ?, ?, now(), now(), 0, now())
         `;
       }
       const params = [
@@ -76,7 +76,8 @@ export default class AttendanceModel extends Model{
           data.time,
           data.map,
           data.reason,
-          data.attendance_status
+          data.attendance_status,
+          data.radius
       ];
       console.log('SQL Query:', connection.format(q, params));
       const [rows] = await connection.query(q, params);

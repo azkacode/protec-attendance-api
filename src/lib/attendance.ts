@@ -8,10 +8,14 @@ import {
   CheckInType,
 } from '../interfaces/attendance.interface';
 import AttendanceModel from '../models/attendance.model';
+import EmployeeModel from '../models/employee.model';
+import haversine from "haversine-distance";
+import e from "express";
+
 const timezone = 'Asia/Jakarta';
 
 export class AttendanceLib {
-  getMockList(list: any) : GroupedData[] {
+  getMockList(list: any): GroupedData[] {
     const groupedData: GroupedData[] = [];
     list.forEach((item: any) => {
       item.date = moment(item.date).format("Y-MM-DD")
@@ -35,7 +39,7 @@ export class AttendanceLib {
     return groupedData
   }
 
-  getIdnStatus(status: string) : string {
+  getIdnStatus(status: string): string {
     let newStatus = null;
     switch (status) {
       case 'ok':
@@ -54,70 +58,90 @@ export class AttendanceLib {
     return newStatus;
   }
 
-  getFullStringDay(date : Date | null): string {
+  getFullStringDay(date: Date | null): string {
     const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
     const d = date == null ? new Date : new Date(date);
     const currentDay = days[d.getDay()];
     return currentDay;
   }
 
-  async getCurrentWorkingHour(userId: number){
+  async getCurrentWorkingHour(userId: number) {
     const attModel = new AttendanceModel();
     const employeeWh = await attModel.getWorkingHour(userId);
     const wH = employeeWh.find(i => i.day == this.getFullStringDay(null));
     return wH;
   }
 
-  async getAttendanceStatus(userId : number, type : AttendanceType): Promise<AttendanceStatus> {
+  async getAttendanceStatus(userId: number, type: AttendanceType): Promise<AttendanceStatus> {
     const wH = await this.getCurrentWorkingHour(userId)
     const targetTime = type == AttendanceType.Start ? wH.start : wH.end;
     const currentTime = moment().tz(timezone).format('HH:mm');
     console.log("target Time", targetTime, currentTime);
     return (type == AttendanceType.Start)
-      ?   (currentTime > targetTime) ? AttendanceStatus.DT : AttendanceStatus.OK
-      :   (currentTime < targetTime) ? AttendanceStatus.PC : AttendanceStatus.OK
+      ? (currentTime > targetTime) ? AttendanceStatus.DT : AttendanceStatus.OK
+      : (currentTime < targetTime) ? AttendanceStatus.PC : AttendanceStatus.OK
   }
 
-  async submitAttendance(req, wH, type : CheckInType){
+  async submitAttendance(req, wH, type: CheckInType) {
     console.log("type", type);
-    
+
     const attendanceModel = new AttendanceModel;
-    const props : CheckInInterface = {
-      type : type,
-      employee_id : req.data.id,
-      evidence : type == CheckInType.In ? req.body.check_in : req.body.check_out,
-      map : type == CheckInType.In ? req.body.map_in : req.body.map_out,
-      time : moment().tz(timezone).format("Y-MM-DD HH:mm:ss"),
-      reason : req.body.reason,
-      attendance_status : null,
+    const employeeModel = new EmployeeModel;
+    const props: CheckInInterface = {
+      type: type,
+      employee_id: req.data.id,
+      evidence: type == CheckInType.In ? req.body.check_in : req.body.check_out,
+      map: type == CheckInType.In ? req.body.map_in : req.body.map_out,
+      time: moment().tz(timezone).format("Y-MM-DD HH:mm:ss"),
+      reason: req.body.reason,
+      attendance_status: null,
+      radius: null,
     };
 
-    if(!props.evidence || !props.map || !props.time) {
+    if (!props.evidence || !props.map || !props.time) {
       throw new Error("Item Required");
     }
     const columnType = type == CheckInType.In ? AttendanceType.Start : AttendanceType.End
     props.attendance_status = await this.getAttendanceStatus(req.data.id, columnType);
+
+    // get employee warehouse location
+    const employeeWarehouse = await employeeModel.warehouseDetail(req.data.warehouse_id);
+    console.log("employeeWarehouse", employeeWarehouse);
+
+    // calculate the distance between employee warehouse location and check in location
+    const latlong: any = props.map.split(",");
+    const radius = Math.round(haversine({
+      latitude: employeeWarehouse.lat,
+      longitude: employeeWarehouse.long
+    }, {
+      latitude: parseFloat(latlong[0]),
+      longitude: parseFloat(latlong[1])
+    }));
+    console.log("radius", radius);
+    props.radius = radius;
+
+    // submit attendance
     const attd = await attendanceModel.submitCheck(props);
-    
-    const logData : AttendanceLogInterface = {
-      attendance_id : attd.insertId,
-      employee_id : props.employee_id,
-      type : props.type,
-      evidence : props.evidence,
-      time : props.time,
-      map : props.map,
-      reason : props.reason,
-      attendance_status : props.attendance_status,
-      approved_by : null,
-      rejected_by : props.attendance_status == AttendanceStatus.OK ? null : 0,
-      actioned_by : props.employee_id,
-      working_hour_id : wH.working_hour_id,
-      name : wH.name,
-      working_hour_item_id : wH.id,
-      day : wH.day,
-      start : wH.start,
-      end : wH.end,
-      status : wH.status,
+
+    const logData: AttendanceLogInterface = {
+      attendance_id: attd.insertId,
+      employee_id: props.employee_id,
+      type: props.type,
+      evidence: props.evidence,
+      time: props.time,
+      map: props.map,
+      reason: props.reason,
+      attendance_status: props.attendance_status,
+      approved_by: null,
+      rejected_by: props.attendance_status == AttendanceStatus.OK ? null : 0,
+      actioned_by: props.employee_id,
+      working_hour_id: wH.working_hour_id,
+      name: wH.name,
+      working_hour_item_id: wH.id,
+      day: wH.day,
+      start: wH.start,
+      end: wH.end,
+      status: wH.status,
     }
     await attendanceModel.submitAttendanceLog(logData);
     return
