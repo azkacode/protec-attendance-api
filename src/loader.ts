@@ -4,13 +4,14 @@ import bodyParser from 'body-parser';
 import config from './config';
 import { createClient } from 'redis';
 import { Container } from 'typedi';
-import { v2 as cloudinary } from 'cloudinary';
+import { S3Client } from '@aws-sdk/client-s3';
 
 import { route } from './routes/route';
 
 export default class Loaders {
   app: any;
-  constructor(app:any) {
+
+  constructor(app: any) {
     this.app = app;
   }
 
@@ -21,27 +22,34 @@ export default class Loaders {
       database: config.mysql.database,
       password: config.mysql.password,
       port: config.mysql.port,
-      timezone: "+07.00"
+      timezone: '+07.00',
     });
+
     const connection = pool.promise();
-    connection.query('SELECT 1')
-    .then(([rows]) => {
-      console.log('MySQL is connected!');
-    })
-    .catch((error) => {
-      console.error('Connection error:', error);
-    });
-    
+
+    connection
+      .query('SELECT 1')
+      .then(([rows]) => {
+        console.log('MySQL is connected!');
+      })
+      .catch((error) => {
+        console.error('Connection error:', error);
+      });
+
     Container.set('mysqlpool', connection);
   }
 
-  async setupRedis(){
+  async setupRedis() {
     const client = createClient({
-      url: config.redis.url
+      url: config.redis.url,
     });
-    client.on('error', err => console.log('Redis Client Error', err));
+
+    client.on('error', (err) => console.log('Redis Client Error', err));
+
     await client.connect();
-    console.log("Redis client connected");
+
+    console.log('Redis client connected');
+
     Container.set('redis', client);
   }
 
@@ -49,28 +57,44 @@ export default class Loaders {
     try {
       await this.setupMySQLPool();
       await this.setupRedis();
-      await this.loadCloudinary();
+      await this.loadObjectStorage();
+
       this.app.use(bodyParser.json());
       this.app.use(bodyParser.urlencoded({ extended: false }));
       this.app.use(cors());
+
       route(this.app);
-    } catch (error:any) {
+    } catch (error: any) {
       console.log(error);
     }
   }
 
-  async loadCloudinary() {
-    // Configure Cloudinary
-    cloudinary.config({
-      cloud_name: config.cloudinary.cloudName,
-      api_key: config.cloudinary.apiKey,
-      api_secret: config.cloudinary.apiSecret,
-      shorten: true,
+  async loadObjectStorage() {
+    if (
+      !config.s3.endpoint ||
+      !config.s3.region ||
+      !config.s3.bucketName ||
+      !config.s3.accessKeyId ||
+      !config.s3.secretAccessKey
+    ) {
+      throw new Error('S3 Object Storage configuration is incomplete');
+    }
+
+    const s3 = new S3Client({
+      region: config.s3.region,
+      endpoint: config.s3.endpoint,
+      credentials: {
+        accessKeyId: config.s3.accessKeyId,
+        secretAccessKey: config.s3.secretAccessKey,
+      },
+      forcePathStyle: true,
     });
-    Container.set('cloudinary', cloudinary);
+
+    Container.set('s3', s3);
+
+    console.log('S3 Object Storage is configured');
+    console.log(`S3 Endpoint: ${config.s3.endpoint}`);
+    console.log(`S3 Region: ${config.s3.region}`);
+    console.log(`S3 Bucket: ${config.s3.bucketName}`);
   }
-
-  
-
-
 }

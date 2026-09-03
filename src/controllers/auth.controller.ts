@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import config from '../config';
 import EmployeeModel from '../models/employee.model';
+import { StringValue } from 'ms';
 
 export default class AuthController  {
   async login(req:Request, res:Response){
@@ -18,7 +19,7 @@ export default class AuthController  {
 
       const payload = { id: user.id, email : user.email };
 
-      jwt.sign(payload, config.jwtSecret, { expiresIn: config.jwtExpiration }, (error, token) => {
+      jwt.sign(payload, config.jwtSecret, { expiresIn: config.jwtExpiration as StringValue }, (error, token) => {
         if (error) throw error;
         return res.json({ token });
       });
