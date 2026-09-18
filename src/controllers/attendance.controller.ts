@@ -9,6 +9,17 @@ import moment from "moment-timezone";
 const timezone = 'Asia/Jakarta';
 
 export default class AttendanceController  {
+  async time(req:any, res:any){
+    const now = moment().tz(timezone);
+    return res.json({
+      data: {
+        now: now.toISOString(),
+        timezone,
+        time: now.format('YYYY-MM-DD HH:mm:ss'),
+      },
+    });
+  }
+
   async get(req:any, res:any){
     try {
       const attendanceModel = new AttendanceModel;
@@ -67,12 +78,12 @@ export default class AttendanceController  {
       const currentAttendance = await attendanceModel.getDetail(req.data.id);
 
       if(currentAttendance.length > 0){
-        throw new Error("Anda sudah check in");
+        throw new Error("You have already clocked in");
       }
       
       const wH = await attendanceLib.getCurrentWorkingHour(req.data.id);
       if(!wH){
-        throw new Error("Anda sedang libur");
+        throw new Error("You are not scheduled to work today");
       }
       await attendanceLib.submitAttendance(req, wH, CheckInType.In);
       const data = await attendanceModel.getDetail(req.data.id);
@@ -90,15 +101,15 @@ export default class AttendanceController  {
       const attendanceLib = new AttendanceLib();
       const currentAttendance = await attendanceModel.getDetail(req.data.id);
       if(currentAttendance.length == 0){
-        throw new Error("Anda harus check in terlebih dahulu");
+        throw new Error("You must clock in first");
       }
       if(currentAttendance.filter((i:any) => i.type == "out").length >= 1){
-        throw new Error("Anda sudah check out");
+        throw new Error("You have already clocked out");
       }
 
       const wH = await attendanceLib.getCurrentWorkingHour(req.data.id);
       if(!wH){
-        throw new Error("Anda sedang libur");
+        throw new Error("You are not scheduled to work today");
       }
       await attendanceLib.submitAttendance(req, wH, CheckInType.Out);
       const data = await attendanceModel.getDetail(req.data.id);

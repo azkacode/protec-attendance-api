@@ -33,6 +33,7 @@ export const route = (router:Router) => {
   router.post("/api/employee/update-password", authMiddleware, empCon.updatePassword);
 
   // Attendance
+  router.get("/api/attendance/time", authMiddleware, attCon.time);
   router.get("/api/attendance/get", authMiddleware, attCon.get);
   router.get("/api/attendance/history", authMiddleware, attCon.history);
   router.get("/api/attendance/report", authMiddleware, attCon.report);

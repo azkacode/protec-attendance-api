@@ -31,12 +31,12 @@ export default class UserController
     try {
       const { old_password, new_password, confirm_password } = req.body;
       if(new_password !== confirm_password) {
-        throw new Error("Konfirmasi password baru tidak sama");
+        throw new Error("New password confirmation does not match");
       }
       const employeeModel = new EmployeeModel;
       const user = await employeeModel.employeeDetail(req.data.email);
       const isMatch = await bcrypt.compare(old_password, user.password);
-      if(!isMatch) throw new Error("Password lama tidak tepat");
+      if(!isMatch) throw new Error("Current password is incorrect");
       let hash : any = await new Promise((resolve, reject) => {
         bcrypt.hash(new_password, 10, function(err, hash) {
           if (err) reject(err);

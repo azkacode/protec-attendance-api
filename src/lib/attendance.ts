@@ -46,10 +46,10 @@ export class AttendanceLib {
         newStatus = "On Time";
         break;
       case 'dt':
-        newStatus = "Datang Terlambat";
+        newStatus = "Late Arrival";
         break;
       case 'pc':
-        newStatus = "Pulang Cepat";
+        newStatus = "Early Departure";
         break;
       default:
         newStatus = null;
