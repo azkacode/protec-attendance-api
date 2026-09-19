@@ -116,16 +116,38 @@ export class AttendanceLib {
     }
 
     // calculate the distance between employee warehouse location and check in location
-    const latlong: any = props.map.split(",");
-    let radius: any = null;
-    if (employeeWarehouse.lat && employeeWarehouse.long) {
-      radius = Math.round(haversine({
-        latitude: employeeWarehouse.lat,
-        longitude: employeeWarehouse.long
-      }, {
-        latitude: parseFloat(latlong[0]),
-        longitude: parseFloat(latlong[1])
-      }));
+    const latlong = String(props.map).split(",").map(value => Number(value.trim()));
+    const [latitude, longitude] = latlong;
+    if (
+      latlong.length !== 2
+      || !Number.isFinite(latitude)
+      || !Number.isFinite(longitude)
+      || latitude < -90 || latitude > 90
+      || longitude < -180 || longitude > 180
+    ) {
+      throw new Error("We could not verify your location. Please enable location access and try again.");
+    }
+
+    const warehouseLatitude = Number(employeeWarehouse.lat);
+    const warehouseLongitude = Number(employeeWarehouse.long);
+    if (
+      !Number.isFinite(warehouseLatitude)
+      || !Number.isFinite(warehouseLongitude)
+      || warehouseLatitude < -90 || warehouseLatitude > 90
+      || warehouseLongitude < -180 || warehouseLongitude > 180
+    ) {
+      throw new Error("Your warehouse location is not configured correctly. Please contact an administrator.");
+    }
+
+    const radius = Math.round(haversine({
+      latitude: warehouseLatitude,
+      longitude: warehouseLongitude
+    }, {
+      latitude,
+      longitude
+    }));
+    if (!Number.isFinite(radius)) {
+      throw new Error("We could not calculate your distance from the warehouse. Please try again.");
     }
     props.radius = radius;
 
