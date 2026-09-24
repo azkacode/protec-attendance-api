@@ -39,8 +39,8 @@ export default class AttendanceController  {
       thirtyDaysAgo.setDate(currentDate.getDate() - 30);
 
       let filter : AttendanceFilterInterface = {
-        start_date : req.body.start_date || thirtyDaysAgo,
-        end_date : req.body.end_date || currentDate,
+        start_date : req.query.start_date || req.body?.start_date || thirtyDaysAgo,
+        end_date : req.query.end_date || req.body?.end_date || currentDate,
         employee_id : req.data.id,
       };
 

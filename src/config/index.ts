@@ -4,7 +4,7 @@ dotenv.config();
 export default {
   port: process.env.PORT || 3000,
   jwtSecret: process.env.JWTSECRET || "secret",
-  jwtExpiration: process.env.JWTEXP || "1d",
+  jwtExpiration: process.env.JWTEXP || process.env.JWTEXPIRESIN || "1d",
   mysql: {
     host: process.env.DBHOST || 'localhost',
     user: process.env.DBUSER || 'root',

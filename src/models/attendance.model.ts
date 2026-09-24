@@ -8,6 +8,31 @@ import {
 import moment from "moment-timezone";
 
 export default class AttendanceModel extends Model{
+  async getConfiguredRadius(): Promise<number> {
+    const fallback = 500;
+
+    try {
+      const connection = await this.pool.getConnection();
+      const q = `
+        SELECT value
+        FROM settings
+        WHERE \`key\` = 'attendance_radius_meters'
+        LIMIT 1
+      `;
+      const [[row]] = await connection.query(q);
+      connection.release();
+
+      const configuredRadius = Number(row?.value);
+
+      return Number.isFinite(configuredRadius) && configuredRadius > 0
+        ? configuredRadius
+        : fallback;
+    } catch (error) {
+      console.error('Could not read attendance radius configuration. Using 500 meters.', error);
+      return fallback;
+    }
+  }
+
   async getDetail(employeeId : number, type : any = null) {
     try {
       const connection = await this.pool.getConnection();
@@ -52,21 +77,21 @@ export default class AttendanceModel extends Model{
       throw error;
     }
   }
-  async submitCheck(data : CheckInInterface) {
+  async submitCheck(data : CheckInInterface, configuredRadius = 500) {
     try {
       const connection = await this.pool.getConnection();
       let q = "";
-      if(data.attendance_status == AttendanceStatus.OK && data.radius <= 500) {
+      if(data.attendance_status == AttendanceStatus.OK && data.radius <= configuredRadius) {
         q = `
           insert into attendances
-          (date, type, employee_id, evidence, time, map, reason, attendance_status, radius, created_at, updated_at) values
-          (now(), ?, ?, ?, ?, ?, ?, ?, ?, now(), now())
+          (date, type, employee_id, evidence, time, map, reason, attendance_status, radius, configured_radius, created_at, updated_at) values
+          (now(), ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), now())
         `;  
       } else {
         q = `
           insert into attendances
-          (date, type, employee_id, evidence, time, map, reason, attendance_status, radius, created_at, updated_at, rejected_by, rejected_at) values
-          (now(), ?, ?, ?, ?, ?, ?, ?, ?, now(), now(), 0, now())
+          (date, type, employee_id, evidence, time, map, reason, attendance_status, radius, configured_radius, created_at, updated_at, rejected_by, rejected_at) values
+          (now(), ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), now(), 0, now())
         `;
       }
       const params = [
@@ -77,7 +102,8 @@ export default class AttendanceModel extends Model{
           data.map,
           data.reason,
           data.attendance_status,
-          data.radius
+          data.radius,
+          configuredRadius
       ];
       console.log('SQL Query:', connection.format(q, params));
       const [rows] = await connection.query(q, params);
@@ -152,6 +178,7 @@ export default class AttendanceModel extends Model{
         select distinct(attendance_status), count(id) as total
         from attendance_logs al
         where employee_id = ?
+        and year(CURRENT_DATE()) = year(date)
         and month(CURRENT_DATE()) = month(date)
         group by attendance_status;
       `;
@@ -172,12 +199,21 @@ export default class AttendanceModel extends Model{
         SELECT COUNT(DISTINCT date) AS attendance
         FROM attendances
         WHERE type IN ('in', 'out')
+        and year(CURRENT_DATE()) = year(date)
         and month(CURRENT_DATE()) = month(date)
         and employee_id = ?
-        GROUP BY date
-        HAVING COUNT(DISTINCT type) = 2;
+        and date IN (
+          SELECT date
+          FROM attendances
+          WHERE type IN ('in', 'out')
+          and year(CURRENT_DATE()) = year(date)
+          and month(CURRENT_DATE()) = month(date)
+          and employee_id = ?
+          GROUP BY date
+          HAVING COUNT(DISTINCT type) = 2
+        );
       `;
-      const params = [ id ];
+      const params = [id, id];
       console.log('SQL Query:', connection.format(q, params));
       const [rows] = await connection.query(q, params);
       connection.release();

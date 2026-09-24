@@ -152,7 +152,8 @@ export class AttendanceLib {
     props.radius = radius;
 
     // submit attendance
-    const attd = await attendanceModel.submitCheck(props);
+    const configuredRadius = await attendanceModel.getConfiguredRadius();
+    const attd = await attendanceModel.submitCheck(props, configuredRadius);
 
     const logData: AttendanceLogInterface = {
       attendance_id: attd.insertId,
