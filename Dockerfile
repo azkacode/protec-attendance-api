@@ -7,7 +7,9 @@ RUN npm ci
 
 COPY tsconfig.json ./
 COPY src ./src
-RUN npm run build
+RUN rm -rf dist \
+  && npm run build \
+  && node -e "const fs=require('fs'); const source=fs.readFileSync('dist/app.js','utf8'); if (!source.includes('require(')) { throw new Error('The compiled Attendance API is not CommonJS.'); }"
 
 FROM node:20-alpine AS runtime
 

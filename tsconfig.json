@@ -1,6 +1,7 @@
 {
     "compilerOptions": {
       "baseUrl" : "./",
+      "module": "CommonJS",
       "moduleResolution": "node",
       "outDir": "dist",
       "sourceMap": true,
@@ -14,4 +15,3 @@
       "src/**/*.ts"
     ]
   }
-  
