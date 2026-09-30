@@ -4,15 +4,15 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "${ATTENDANCE_API_PORT:-3000}:3000"
+      - "${ATTENDANCE_API_PORT:-3123}:3000"
     env_file:
       - .env
     environment:
       PORT: 3000
-      DBHOST: ${ATTENDANCE_DBHOST:-host.docker.internal}
+      DBHOST: ${ATTENDANCE_DBHOST:-protec-api-mysql}
       REDISURL: redis://redis:6379
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    networks:
+      - protec-v2-api_protec
     depends_on:
       redis:
         condition: service_healthy
@@ -26,9 +26,15 @@ services:
 
   redis:
     image: redis:7-alpine
+    networks:
+      - protec-v2-api_protec
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+networks:
+  protec-v2-api_protec:
+    external: true
