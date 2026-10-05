@@ -6,7 +6,8 @@ import {
 } from '../interfaces/attendance.interface';
 import { AttendanceLib } from '../lib/attendance';
 import moment from "moment-timezone";
-const timezone = 'Asia/Jakarta';
+import config from '../config';
+const timezone = config.timezone;
 
 export default class AttendanceController  {
   async time(req:any, res:any){
@@ -34,9 +35,8 @@ export default class AttendanceController  {
   }
   async history(req:any, res:any) {
     try {
-      const currentDate = new Date();
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(currentDate.getDate() - 30);
+      const currentDate = moment().tz(timezone);
+      const thirtyDaysAgo = currentDate.clone().subtract(30, 'days');
 
       let filter : AttendanceFilterInterface = {
         start_date : req.query.start_date || req.body?.start_date || thirtyDaysAgo,

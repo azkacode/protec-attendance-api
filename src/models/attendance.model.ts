@@ -6,6 +6,7 @@ import {
     AttendanceStatus
 } from '../interfaces/attendance.interface';
 import moment from "moment-timezone";
+import config from '../config';
 
 export default class AttendanceModel extends Model{
   async getConfiguredRadius(): Promise<number> {
@@ -33,20 +34,21 @@ export default class AttendanceModel extends Model{
     }
   }
 
-  async getDetail(employeeId : number, type : any = null) {
+  async getDetail(employeeId : number, type : any = null, date = moment().tz(config.timezone).format('YYYY-MM-DD')) {
     try {
       const connection = await this.pool.getConnection();
       let q = `
         SELECT *
         FROM attendances
-        WHERE DATE(date) = CURDATE() and employee_id = ?
+        WHERE DATE(date) = ? and employee_id = ?
         order by date asc
       `;
       if (type !== null) {
         q += ` and type = ${type} `
       }
-      console.log('SQL Query:', connection.format(q, [employeeId]));
-      const [rows] = await connection.query(q, [employeeId]);
+      const params = [date, employeeId];
+      console.log('SQL Query:', connection.format(q, params));
+      const [rows] = await connection.query(q, params);
       connection.release();
       return rows;
     } catch (error) {
@@ -85,16 +87,17 @@ export default class AttendanceModel extends Model{
         q = `
           insert into attendances
           (date, type, employee_id, evidence, time, map, reason, attendance_status, radius, configured_radius, created_at, updated_at) values
-          (now(), ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), now())
+          (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), now())
         `;  
       } else {
         q = `
           insert into attendances
           (date, type, employee_id, evidence, time, map, reason, attendance_status, radius, configured_radius, created_at, updated_at, rejected_by, rejected_at) values
-          (now(), ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), now(), 0, now())
+          (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), now(), 0, now())
         `;
       }
       const params = [
+          data.time,
           data.type,
           data.employee_id,
           data.evidence,

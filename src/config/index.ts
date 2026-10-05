@@ -3,6 +3,7 @@ dotenv.config();
 
 export default {
   port: process.env.PORT || 3000,
+  timezone: process.env.ATTENDANCE_TIMEZONE || 'Asia/Jakarta',
   jwtSecret: process.env.JWTSECRET || "secret",
   jwtExpiration: process.env.JWTEXP || process.env.JWTEXPIRESIN || "1d",
   mysql: {

@@ -11,8 +11,9 @@ import AttendanceModel from '../models/attendance.model';
 import EmployeeModel from '../models/employee.model';
 import haversine from "haversine-distance";
 import e from "express";
+import config from '../config';
 
-const timezone = 'Asia/Jakarta';
+const timezone = config.timezone;
 
 export class AttendanceLib {
   getMockList(list: any): GroupedData[] {
@@ -60,8 +61,9 @@ export class AttendanceLib {
 
   getFullStringDay(date: Date | null): string {
     const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-    const d = date == null ? new Date : new Date(date);
-    const currentDay = days[d.getDay()];
+    const currentDay = date == null
+      ? days[moment().tz(timezone).day()]
+      : days[moment(date).tz(timezone).day()];
     return currentDay;
   }
 
