@@ -1,6 +1,6 @@
 export interface AttendanceFilterInterface {
-    start_date: Date | null;
-    end_date: Date | null;
+    start_date: Date | string | null;
+    end_date: Date | string | null;
     employee_id : number;
 }
 

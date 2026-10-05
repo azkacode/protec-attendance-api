@@ -35,8 +35,8 @@ export default class AttendanceController  {
   }
   async history(req:any, res:any) {
     try {
-      const currentDate = moment().tz(timezone);
-      const thirtyDaysAgo = currentDate.clone().subtract(30, 'days');
+      const currentDate = moment().tz(timezone).format('YYYY-MM-DD');
+      const thirtyDaysAgo = moment().tz(timezone).subtract(30, 'days').format('YYYY-MM-DD');
 
       let filter : AttendanceFilterInterface = {
         start_date : req.query.start_date || req.body?.start_date || thirtyDaysAgo,
