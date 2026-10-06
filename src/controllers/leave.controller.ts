@@ -30,17 +30,17 @@ export default class LeaveController
       let endDate : Date = new Date(end_date);
 
       if(startDate > endDate){
-        throw new Error("Tanggal awal harus lebih awal dari tanggal akhir");
+        throw new Error("The start date must be before the end date");
       }
       let leaveData = await leaveLib.getRemainingLeave(req.data.id, leave_id);
       if(leaveData.length <= 0) {
-        throw new Error("Data cuti tidak ditemukan");
+        throw new Error("Leave data was not found");
       }
       leaveData = leaveData.shift();
 
       const numberOfDays = leaveLib.countDays(startDate, endDate) + 1;
       if(numberOfDays > leaveData.remaining_leaves) {
-        throw new Error("Jumlah pengajuan melebihi sisa cuti");
+        throw new Error("The requested leave exceeds your remaining allowance");
       }
 
       // check date available
@@ -49,7 +49,7 @@ export default class LeaveController
       const listOfDate = leaveLib.createDateRange(startDate, endDate);
       const dateUnvailable = await leaveModel.checkLeaveLogExists(leaveData.id, req.data.id, listOfDate);
       if(dateUnvailable.length > 0) {
-        throw new Error("Sudah ada pengajuan cuti di tanggal-tanggal tersebut");
+        throw new Error("A leave request already exists for those dates");
       }
       for (const date of listOfDate) {
         const createData: LeaveLogInterface = {

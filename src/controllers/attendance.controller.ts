@@ -6,9 +6,21 @@ import {
 } from '../interfaces/attendance.interface';
 import { AttendanceLib } from '../lib/attendance';
 import moment from "moment-timezone";
-const timezone = 'Asia/Jakarta';
+import config from '../config';
+const timezone = config.timezone;
 
 export default class AttendanceController  {
+  async time(req:any, res:any){
+    const now = moment().tz(timezone);
+    return res.json({
+      data: {
+        now: now.toISOString(),
+        timezone,
+        time: now.format('YYYY-MM-DD HH:mm:ss'),
+      },
+    });
+  }
+
   async get(req:any, res:any){
     try {
       const attendanceModel = new AttendanceModel;
@@ -23,13 +35,12 @@ export default class AttendanceController  {
   }
   async history(req:any, res:any) {
     try {
-      const currentDate = new Date();
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(currentDate.getDate() - 30);
+      const currentDate = moment().tz(timezone).format('YYYY-MM-DD');
+      const thirtyDaysAgo = moment().tz(timezone).subtract(30, 'days').format('YYYY-MM-DD');
 
       let filter : AttendanceFilterInterface = {
-        start_date : req.body.start_date || thirtyDaysAgo,
-        end_date : req.body.end_date || currentDate,
+        start_date : req.query.start_date || req.body?.start_date || thirtyDaysAgo,
+        end_date : req.query.end_date || req.body?.end_date || currentDate,
         employee_id : req.data.id,
       };
 
@@ -67,12 +78,12 @@ export default class AttendanceController  {
       const currentAttendance = await attendanceModel.getDetail(req.data.id);
 
       if(currentAttendance.length > 0){
-        throw new Error("Anda sudah check in");
+        throw new Error("You have already clocked in");
       }
       
       const wH = await attendanceLib.getCurrentWorkingHour(req.data.id);
       if(!wH){
-        throw new Error("Anda sedang libur");
+        throw new Error("You are not scheduled to work today");
       }
       await attendanceLib.submitAttendance(req, wH, CheckInType.In);
       const data = await attendanceModel.getDetail(req.data.id);
@@ -90,15 +101,15 @@ export default class AttendanceController  {
       const attendanceLib = new AttendanceLib();
       const currentAttendance = await attendanceModel.getDetail(req.data.id);
       if(currentAttendance.length == 0){
-        throw new Error("Anda harus check in terlebih dahulu");
+        throw new Error("You must clock in first");
       }
       if(currentAttendance.filter((i:any) => i.type == "out").length >= 1){
-        throw new Error("Anda sudah check out");
+        throw new Error("You have already clocked out");
       }
 
       const wH = await attendanceLib.getCurrentWorkingHour(req.data.id);
       if(!wH){
-        throw new Error("Anda sedang libur");
+        throw new Error("You are not scheduled to work today");
       }
       await attendanceLib.submitAttendance(req, wH, CheckInType.Out);
       const data = await attendanceModel.getDetail(req.data.id);

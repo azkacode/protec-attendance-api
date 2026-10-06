@@ -11,8 +11,9 @@ import AttendanceModel from '../models/attendance.model';
 import EmployeeModel from '../models/employee.model';
 import haversine from "haversine-distance";
 import e from "express";
+import config from '../config';
 
-const timezone = 'Asia/Jakarta';
+const timezone = config.timezone;
 
 export class AttendanceLib {
   getMockList(list: any): GroupedData[] {
@@ -46,10 +47,10 @@ export class AttendanceLib {
         newStatus = "On Time";
         break;
       case 'dt':
-        newStatus = "Datang Terlambat";
+        newStatus = "Late Arrival";
         break;
       case 'pc':
-        newStatus = "Pulang Cepat";
+        newStatus = "Early Departure";
         break;
       default:
         newStatus = null;
@@ -60,8 +61,9 @@ export class AttendanceLib {
 
   getFullStringDay(date: Date | null): string {
     const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-    const d = date == null ? new Date : new Date(date);
-    const currentDay = days[d.getDay()];
+    const currentDay = date == null
+      ? days[moment().tz(timezone).day()]
+      : days[moment(date).tz(timezone).day()];
     return currentDay;
   }
 
@@ -116,21 +118,44 @@ export class AttendanceLib {
     }
 
     // calculate the distance between employee warehouse location and check in location
-    const latlong: any = props.map.split(",");
-    let radius: any = null;
-    if (employeeWarehouse.lat && employeeWarehouse.long) {
-      radius = Math.round(haversine({
-        latitude: employeeWarehouse.lat,
-        longitude: employeeWarehouse.long
-      }, {
-        latitude: parseFloat(latlong[0]),
-        longitude: parseFloat(latlong[1])
-      }));
+    const latlong = String(props.map).split(",").map(value => Number(value.trim()));
+    const [latitude, longitude] = latlong;
+    if (
+      latlong.length !== 2
+      || !Number.isFinite(latitude)
+      || !Number.isFinite(longitude)
+      || latitude < -90 || latitude > 90
+      || longitude < -180 || longitude > 180
+    ) {
+      throw new Error("We could not verify your location. Please enable location access and try again.");
+    }
+
+    const warehouseLatitude = Number(employeeWarehouse.lat);
+    const warehouseLongitude = Number(employeeWarehouse.long);
+    if (
+      !Number.isFinite(warehouseLatitude)
+      || !Number.isFinite(warehouseLongitude)
+      || warehouseLatitude < -90 || warehouseLatitude > 90
+      || warehouseLongitude < -180 || warehouseLongitude > 180
+    ) {
+      throw new Error("Your warehouse location is not configured correctly. Please contact an administrator.");
+    }
+
+    const radius = Math.round(haversine({
+      latitude: warehouseLatitude,
+      longitude: warehouseLongitude
+    }, {
+      latitude,
+      longitude
+    }));
+    if (!Number.isFinite(radius)) {
+      throw new Error("We could not calculate your distance from the warehouse. Please try again.");
     }
     props.radius = radius;
 
     // submit attendance
-    const attd = await attendanceModel.submitCheck(props);
+    const configuredRadius = await attendanceModel.getConfiguredRadius();
+    const attd = await attendanceModel.submitCheck(props, configuredRadius);
 
     const logData: AttendanceLogInterface = {
       attendance_id: attd.insertId,
